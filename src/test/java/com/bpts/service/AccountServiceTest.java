@@ -10,9 +10,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -136,5 +143,174 @@ class AccountServiceTest {
         assertFalse(accountService.accountExists("non-existent-id"));
         
         verify(accountRepository, times(2)).existsByAccountId(anyString());
+    }
+    
+    @Test
+    @DisplayName("Should retrieve all accounts with pagination successfully")
+    void testGetAllAccounts() {
+        // Given
+        Account account1 = Account.builder()
+                .accountId("account-1")
+                .balance(new BigDecimal("1000.00"))
+                .currency("USD")
+                .build();
+        
+        Account account2 = Account.builder()
+                .accountId("account-2")
+                .balance(new BigDecimal("2000.00"))
+                .currency("USD")
+                .build();
+        
+        List<Account> accounts = Arrays.asList(account1, account2);
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Account> accountsPage = new PageImpl<>(accounts, pageable, 2);
+        
+        when(accountRepository.findAll(any(Pageable.class))).thenReturn(accountsPage);
+        
+        // When
+        Page<Account> result = accountService.getAllAccounts(pageable);
+        
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+        assertEquals("account-1", result.getContent().get(0).getAccountId());
+        assertEquals("account-2", result.getContent().get(1).getAccountId());
+        verify(accountRepository, times(1)).findAll(pageable);
+    }
+    
+    @Test
+    @DisplayName("Should return empty page when no accounts exist")
+    void testGetAllAccountsEmpty() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Account> emptyPage = new PageImpl<>(Arrays.asList(), pageable, 0);
+        
+        when(accountRepository.findAll(any(Pageable.class))).thenReturn(emptyPage);
+        
+        // When
+        Page<Account> result = accountService.getAllAccounts(pageable);
+        
+        // Then
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+        assertEquals(0, result.getContent().size());
+        assertTrue(result.getContent().isEmpty());
+        verify(accountRepository, times(1)).findAll(pageable);
+    }
+    
+    @Test
+    @DisplayName("Should create account successfully with initial balance and currency")
+    void testCreateAccount() {
+        // Given
+        BigDecimal initialBalance = new BigDecimal("1000.00");
+        String currency = "USD";
+        
+        Account newAccount = Account.builder()
+                .accountId(UUID.randomUUID().toString())
+                .balance(initialBalance)
+                .currency(currency)
+                .build();
+        
+        when(accountRepository.save(any(Account.class))).thenReturn(newAccount);
+        
+        // When
+        Account createdAccount = accountService.createAccount(initialBalance, currency);
+        
+        // Then
+        assertNotNull(createdAccount);
+        assertEquals(initialBalance, createdAccount.getBalance());
+        assertEquals(currency, createdAccount.getCurrency());
+        assertNotNull(createdAccount.getAccountId());
+        verify(accountRepository, times(1)).save(any(Account.class));
+    }
+    
+    @Test
+    @DisplayName("Should create account with default balance when initialBalance is null")
+    void testCreateAccountWithNullBalance() {
+        // Given
+        String currency = "USD";
+        
+        Account newAccount = Account.builder()
+                .accountId(UUID.randomUUID().toString())
+                .balance(BigDecimal.ZERO)
+                .currency(currency)
+                .build();
+        
+        when(accountRepository.save(any(Account.class))).thenReturn(newAccount);
+        
+        // When
+        Account createdAccount = accountService.createAccount(null, currency);
+        
+        // Then
+        assertNotNull(createdAccount);
+        assertEquals(BigDecimal.ZERO, createdAccount.getBalance());
+        assertEquals(currency, createdAccount.getCurrency());
+        verify(accountRepository, times(1)).save(any(Account.class));
+    }
+    
+    @Test
+    @DisplayName("Should create account with default currency when currency is null")
+    void testCreateAccountWithNullCurrency() {
+        // Given
+        BigDecimal initialBalance = new BigDecimal("1000.00");
+        
+        Account newAccount = Account.builder()
+                .accountId(UUID.randomUUID().toString())
+                .balance(initialBalance)
+                .currency("USD")
+                .build();
+        
+        when(accountRepository.save(any(Account.class))).thenReturn(newAccount);
+        
+        // When
+        Account createdAccount = accountService.createAccount(initialBalance, null);
+        
+        // Then
+        assertNotNull(createdAccount);
+        assertEquals(initialBalance, createdAccount.getBalance());
+        assertEquals("USD", createdAccount.getCurrency());
+        verify(accountRepository, times(1)).save(any(Account.class));
+    }
+    
+    @Test
+    @DisplayName("Should create account with default currency when currency is empty")
+    void testCreateAccountWithEmptyCurrency() {
+        // Given
+        BigDecimal initialBalance = new BigDecimal("1000.00");
+        
+        Account newAccount = Account.builder()
+                .accountId(UUID.randomUUID().toString())
+                .balance(initialBalance)
+                .currency("USD")
+                .build();
+        
+        when(accountRepository.save(any(Account.class))).thenReturn(newAccount);
+        
+        // When
+        Account createdAccount = accountService.createAccount(initialBalance, "");
+        
+        // Then
+        assertNotNull(createdAccount);
+        assertEquals(initialBalance, createdAccount.getBalance());
+        assertEquals("USD", createdAccount.getCurrency());
+        verify(accountRepository, times(1)).save(any(Account.class));
+    }
+    
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when initial balance is negative")
+    void testCreateAccountWithNegativeBalance() {
+        // Given
+        BigDecimal negativeBalance = new BigDecimal("-100.00");
+        String currency = "USD";
+        
+        // When & Then
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> accountService.createAccount(negativeBalance, currency)
+        );
+        
+        assertTrue(exception.getMessage().contains("Initial balance cannot be negative"));
+        verify(accountRepository, never()).save(any(Account.class));
     }
 }

@@ -5,7 +5,7 @@ CREATE TABLE accounts (
     currency VARCHAR(3) NOT NULL DEFAULT 'USD' COMMENT 'Account currency code (ISO 4217)',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Account creation timestamp',
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
-    CONSTRAINT chk_balance_non_negative CHECK (balance >= 0) COMMENT 'Ensure balance is never negative'
+    CONSTRAINT chk_balance_non_negative CHECK (balance >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Stores account information and balances';
 

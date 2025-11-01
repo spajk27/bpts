@@ -8,8 +8,7 @@ CREATE TABLE transactions (
     transaction_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Transaction timestamp',
     description VARCHAR(500) DEFAULT NULL COMMENT 'Optional transaction description',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
-    CONSTRAINT chk_amount_positive CHECK (amount > 0) COMMENT 'Ensure transfer amount is positive',
-    CONSTRAINT chk_different_accounts CHECK (from_account_id != to_account_id) COMMENT 'Prevent transfers to same account',
+    CONSTRAINT chk_amount_positive CHECK (amount > 0),
     CONSTRAINT fk_transactions_from_account FOREIGN KEY (from_account_id) 
         REFERENCES accounts(account_id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_transactions_to_account FOREIGN KEY (to_account_id) 

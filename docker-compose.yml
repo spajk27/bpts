@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.7'
 
 services:
   # MySQL Database Service
@@ -39,8 +39,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     networks:
       - payment-transfer-network
     restart: unless-stopped
@@ -49,7 +48,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
 
 networks:
   payment-transfer-network:

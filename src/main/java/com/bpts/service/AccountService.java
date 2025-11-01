@@ -5,6 +5,8 @@ import com.bpts.model.Account;
 import com.bpts.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +19,19 @@ import java.util.UUID;
 public class AccountService {
     
     private final AccountRepository accountRepository;
-    
+
+    /**
+     * Get all accounts with pagination support
+     *
+     * @param pageable Pagination parameters (page number, size, sorting)
+     * @return Page of accounts
+     */
+    @Transactional(readOnly = true)
+    public Page<Account> getAllAccounts(Pageable pageable) {
+        log.debug("Retrieving all accounts with pagination: {}", pageable);
+        return accountRepository.findAll(pageable);
+    }
+
     /**
      * Get account by ID
      * 
